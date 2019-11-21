@@ -35,7 +35,7 @@ check_tor_service_status() {
         sleep 5
         check_tor_service_status
     else        
-        if [ TOR_SERVICE_CHECKER TOR_SERVICE_CHECKER_MAX] <=; then
+        if [ ${TOR_SERVICE_CHECKER} -lt ${TOR_SERVICE_CHECKER_MAX} ] ; then
             printf "\nChecking ${TOR_SERVICE_CHECKER} / ${TOR_SERVICE_CHECKER_MAX}\\n"
             change_color 2
             printf "\nTor service status ${TOR_STATUS}\\n"
@@ -165,18 +165,20 @@ launch_nextcloud(){
     change_color 3
     printf "Launching NextCloud...\\n"
     change_color -1
-    firefox http://127.0.0.1:${NEXTCLOUD_PORT}
+    # firefox http://127.0.0.1:${NEXTCLOUD_PORT}
+    sudo firefox http://127.0.0.1:81
 }
 
 main() {
 
-    check_for_package "tor"
-    check_for_package "net-tools"
-    check_for_package "snapd"
+    # check_for_package "tor"
+    # check_for_package "net-tools"
+    # check_for_package "snapd"
     install_snap_pkg "nextcloud"
-    sleep 10
+    sleep 5
     configure_nextcloud
-
+    sleep 10
+    launch_nextcloud
     #install_tor_browser
 
     # purge_packages
