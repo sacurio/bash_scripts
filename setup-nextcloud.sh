@@ -163,5 +163,5 @@ main() {
     printf "\\nExiting...\\n\\n"
     change_color -1
 }
-
+#example
 main
