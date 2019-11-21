@@ -166,14 +166,15 @@ launch_nextcloud(){
     printf "Launching NextCloud...\\n"
     change_color -1
     # firefox http://127.0.0.1:${NEXTCLOUD_PORT}
-    sudo firefox http://127.0.0.1:81
+    firefox -Createprofile "NextCloud"
+    firefox -new-instance -P "NextCloud" http://127.0.0.1:81
 }
 
 main() {
 
-    # check_for_package "tor"
-    # check_for_package "net-tools"
-    # check_for_package "snapd"
+    check_for_package "tor"
+    check_for_package "net-tools"
+    check_for_package "snapd"
     install_snap_pkg "nextcloud"
     sleep 5
     configure_nextcloud
