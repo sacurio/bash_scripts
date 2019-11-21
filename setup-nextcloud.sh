@@ -4,6 +4,8 @@ TORRC_ROOT=/etc/tor
 ETC_TOR=/etc
 HSDIR_ROOT=/var/lib/tor
 HOSTNAME=$(uname -n)
+TOR_SERVICE_CHECKER=1
+TOR_SERVICE_CHECKER_MAX=5
 
 USER="debian-tor"
 GROUP="debian-tor"
@@ -31,10 +33,14 @@ check_tor_service_status() {
         systemctl start tor
         sleep 5
         check_tor_service_status
-    else
-        change_color 2
-        printf "\nTor service status ${TOR_STATUS}\\n"
-        change_color -1
+    else        
+        if [ TOR_SERVICE_CHECKER TOR_SERVICE_CHECKER_MAX] <=; then
+            printf "\nChecking ${TOR_SERVICE_CHECKER} / ${TOR_SERVICE_CHECKER_MAX}\\n"
+            change_color 2
+            printf "\nTor service status ${TOR_STATUS}\\n"
+            change_color -1
+            TOR_SERVICE_CHECKER += 1
+        fi
     fi
 }
 
@@ -140,11 +146,18 @@ purge_packages() {
     purge_snap_pkg "nextcloud"
 }
 
-install_tor_browser(){
-    printf "deb http://deb.debian.org/debian buster-backports main contrib" > /etc/apt/sources.list.d/buster-backports.list
+install_tor_browser() {
+    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
     apt update
     sleep 5
     apt --assume-yes install torbrowser-launcher -t buster-backports
+}
+
+configure_nextcloud() {
+    change_color 3
+    printf "Configuring nextcloud...\\n"
+    change_color -1
+    sudo snap set nextcloud ports.http=81
 }
 
 main() {
@@ -153,7 +166,10 @@ main() {
     check_for_package "net-tools"
     check_for_package "snapd"
     install_snap_pkg "nextcloud"
-    #install_tor_browser    
+    sleep 10
+    configure_nextcloud
+
+    #install_tor_browser
 
     # purge_packages
 
