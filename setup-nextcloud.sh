@@ -6,6 +6,7 @@ HSDIR_ROOT=/var/lib/tor
 HOSTNAME=$(uname -n)
 TOR_SERVICE_CHECKER=1
 TOR_SERVICE_CHECKER_MAX=5
+NEXTCLOUD_PORT=81
 
 USER="debian-tor"
 GROUP="debian-tor"
@@ -157,7 +158,14 @@ configure_nextcloud() {
     change_color 3
     printf "Configuring nextcloud...\\n"
     change_color -1
-    sudo snap set nextcloud ports.http=81
+    sudo snap set nextcloud ports.http=${NEXTCLOUD_PORT}
+}
+
+launch_nextcloud(){
+    change_color 3
+    printf "Launching NextCloud...\\n"
+    change_color -1
+    firefox http://127.0.0.1:${NEXTCLOUD_PORT}
 }
 
 main() {
