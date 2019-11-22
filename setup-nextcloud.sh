@@ -8,14 +8,17 @@ TOR_SERVICE_CHECKER=1
 TOR_SERVICE_CHECKER_MAX=5
 NEXTCLOUD_PORT=81
 
+# USER="debian-tor"
+# GROUP="debian-tor"
+
 USER="debian-tor"
 GROUP="debian-tor"
-
-HS_PORT=64738
 
 TOR_STATUS=-1
 
 ONION_URL='-'
+
+#================TOR================
 
 check_tor_service_status() {
     ## Validating services status
@@ -40,10 +43,51 @@ check_tor_service_status() {
             change_color 2
             printf "\nTor service status ${TOR_STATUS}\\n"
             change_color -1
-            TOR_SERVICE_CHECKER += 1
+            $TOR_SERVICE_CHECKER += 1
         fi
     fi
 }
+
+install_tor_browser() {
+    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
+    apt update
+    sleep 5
+    apt --assume-yes install torbrowser-launcher -t buster-backports
+}
+
+#================TOR================
+
+#================HIDDEN SERVICES================
+
+configure_hidden_service(){
+    
+    printf "Configuring hidden service...\n"
+    # printf "${TOR_STATUS} \n"
+
+    if [ "$TOR_STATUS" != "inactive" ]; then
+        printf "Backing up original torrc configuration"
+        cp -pv $TORRC_ROOT/torrc $TORRC_ROOT/torrc.orig
+
+        sed -e "78 a # NextCloud hidden service configuration." \
+            -e "78 a HiddenServiceDir $HSDIR_ROOT/nextcloud/" \
+            -e "78 a HiddenServicePort $NEXTCLOUD_PORT 127.0.0.1:$NEXTCLOUD_PORT\n" \
+            < $TORRC_ROOT/torrc.orig \
+            > $TORRC_ROOT/torrc
+        sleep 2
+        printf "Restarting Tor service... \n"
+        systemctl restart tor
+        ONION_URL=$(cat /var/lib/tor/nextcloud/hostname)
+        change_color 2
+        printf "\n\nOnion HiddenService url:  $ONION_URL \n\n"
+        change_color -1
+
+    fi
+    
+}
+
+#================HIDDEN SERVICES================
+
+#================PACKAGES================
 
 check_for_package() {
     local program
@@ -89,6 +133,23 @@ purge_pkg() {
     apt-get --assume-yes --purge remove ${program}
 }
 
+purge_packages() {
+    purge_pkg "tor"
+    purge_pkg "net-tools"
+    purge_pkg "snapd"
+    purge_snap_pkg "nextcloud"
+}
+
+check_packages(){
+    check_for_package "tor"
+    check_for_package "net-tools"
+    check_for_package "snapd"    
+}
+
+#================PACKAGES================
+
+#================SNAP PACKAGES================
+
 check_snap_pkg() {
     local program
     program="${1}"
@@ -131,6 +192,14 @@ purge_snap_pkg() {
     snap remove ${program}
 }
 
+check_snap_packages(){
+    install_snap_pkg "nextcloud"
+}
+
+#================SNAP PACKAGES================
+
+#================UTIL================
+
 change_color() {
     color=$1
     if [ "${color}" == "-1" ]; then
@@ -140,23 +209,13 @@ change_color() {
     fi
 }
 
-purge_packages() {
-    purge_pkg "tor"
-    purge_pkg "net-tools"
-    purge_pkg "snapd"
-    purge_snap_pkg "nextcloud"
-}
+#================UTIL================
 
-install_tor_browser() {
-    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
-    apt update
-    sleep 5
-    apt --assume-yes install torbrowser-launcher -t buster-backports
-}
+#================NEXTCLOUD================
 
 configure_nextcloud() {
     change_color 3
-    printf "Configuring nextcloud...\\n"
+    printf "Configuring NextCloud...\\n"
     change_color -1
     sudo snap set nextcloud ports.http=${NEXTCLOUD_PORT}
 }
@@ -165,21 +224,22 @@ launch_nextcloud(){
     change_color 3
     printf "Launching NextCloud...\\n"
     change_color -1
-    # firefox http://127.0.0.1:${NEXTCLOUD_PORT}
-    firefox -Createprofile "NextCloud"
-    firefox -new-instance -P "NextCloud" http://127.0.0.1:81
+    . firefox http://127.0.0.1:${NEXTCLOUD_PORT}
 }
+
+#================NEXTCLOUD================
 
 main() {
 
-    check_for_package "tor"
-    check_for_package "net-tools"
-    check_for_package "snapd"
-    install_snap_pkg "nextcloud"
+    apt-get update
+    check_packages
+    check_snap_packages    
     sleep 5
     configure_nextcloud
     sleep 10
-    launch_nextcloud
+    #launch_nextcloud
+    configure_hidden_service
+
     #install_tor_browser
 
     # purge_packages
