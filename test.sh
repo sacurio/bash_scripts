@@ -6,6 +6,7 @@ test(){
     apt update
 
     apt --assume-yes install torbrowser-launcher -t buster-backports
+    torbrowser-launcher
     
 
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -xe
+#set -xe
 
 TORRC_ROOT=/etc/tor
 ETC_TOR=/etc
@@ -51,11 +51,17 @@ check_tor_service_status() {
     fi
 }
 
+check_tor_browser(){
+    EXISTS=$(which tor-browser)
+    if [ EXISTS == "" ]; then
+        install_tor_browser
+    fi
+}
+
 install_tor_browser() {
-    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
+    printf "deb http://deb.debian.org/debian buster-backports main contrib" > /etc/apt/sources.list.d/buster-backports.list
     apt update
-    sleep 5
-    apt --assume-yes install torbrowser-launcher -t buster-backports
+    apt --assume-yes install torbrowser-launcher -t buster-backports    
 }
 
 #================TOR================
@@ -262,9 +268,9 @@ main() {
     apt-get update
     check_packages
     check_snap_packages
-    sleep 5
+    sleep 2
     configure_nextcloud
-    sleep 5
+    sleep 2
     #launch_nextcloud
     configure_hidden_service
 
@@ -273,6 +279,8 @@ main() {
     # purge_packages
 
     check_tor_service_status
+
+    check_tor_browser
 
     change_color 4
     printf "\\nExiting...\\n\\n"
