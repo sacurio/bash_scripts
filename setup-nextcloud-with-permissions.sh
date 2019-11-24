@@ -91,6 +91,7 @@ configure_hidden_service() {
         printf "Restarting Tor service... \n"
         systemctl restart tor
         wait_tor_service_active
+        sleep 10
         ONION_URL=$(cat $HSDIR_ROOT/nextcloud/hostname)
         change_color 2
         printf "\n\nOnion HiddenService url:  $ONION_URL \n\n"
@@ -254,13 +255,6 @@ configure_nextcloud() {
     sudo snap set nextcloud ports.http=${NEXTCLOUD_PORT}
 }
 
-launch_nextcloud() {
-    change_color 3
-    printf "Launching NextCloud...\\n"
-    change_color -1
-    . firefox http://127.0.0.1:${NEXTCLOUD_PORT}
-}
-
 #================NEXTCLOUD================
 
 main() {
@@ -271,15 +265,12 @@ main() {
     sleep 2
     configure_nextcloud
     sleep 2
-    #launch_nextcloud
     configure_hidden_service
-
-    #install_tor_browser
 
     # purge_packages
 
     check_tor_service_status
-
+    sleep 2
     check_tor_browser
 
     change_color 4
