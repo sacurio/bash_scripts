@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 
-#set -xe
+source utils.sh
 
+#Interrupt the script execution on first error
+set -e
+
+#Setup variables (change values if you need)
 TORRC_ROOT=/etc/tor
-ETC_TOR=/etc
 HSDIR_ROOT=/var/lib/tor
-HOSTNAME=$(uname -n)
-TOR_SERVICE_CHECKER=1
-TOR_SERVICE_CHECKER_MAX=5
 NEXTCLOUD_PORT=81
 SEARCH_TEXT="NextCloud hidden service configuration"
-
-# USER="debian-tor"
-# GROUP="debian-tor"
 
 USER="debian-tor"
 GROUP="debian-tor"
@@ -21,35 +18,16 @@ TOR_STATUS=-1
 
 ONION_URL='-'
 
-#================TOR================
+#Code block for Hidden Services stuffs.
 
-
-install_tor_browser_launcher() {
-    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
-    apt update
-    apt --assume-yes install torbrowser-launcher -t buster-backports
-}
-
-ensure_tor_browser(){
-    EXISTS=$(which tor-browser)
-    if [ x$EXISTS == "x" ]; then
-        INSTALLER_EXISTS=$(which torbrowser-launcher)
-        if [ x$INSTALLER_EXISTS == "x" ]; then
-            echo "Installing tor browser installer, since it didn't exist"
-            install_tor_browser_launcher
-        fi
-    fi
-}
-
-#================TOR================
-
-#================HIDDEN SERVICES================
-
+# If Tor is active, will try to add a configuration
+# for the NextCloud hidden service, if it hasn't 
+# already been added. Creates a backup copy of the original
+# torrc during operation.
 configure_hidden_service() {
 
     printf "Configuring hidden service...\n"
-    # printf "${TOR_STATUS} \n"
-
+    
     if [ "$TOR_STATUS" != "inactive" ]; then
         echo "Backing up original torrc configuration..."
 
@@ -57,6 +35,10 @@ configure_hidden_service() {
 
         if [ $LINES_FOUND == "0" ]; then
             cp -pv $TORRC_ROOT/torrc $TORRC_ROOT/torrc.orig
+            # Inserts new HiddenService declarations around line 78
+            # This is sensitive to the original layout of torrc
+            # Ideally, a different way of locating the right point
+            # of insertion would be used.
             sed -e "78 a # NextCloud hidden service configuration." \
                 -e "78 a HiddenServiceDir $HSDIR_ROOT/nextcloud/" \
                 -e "78 a HiddenServicePort $NEXTCLOUD_PORT 127.0.0.1:$NEXTCLOUD_PORT\n" \
@@ -64,20 +46,16 @@ configure_hidden_service() {
                 >$TORRC_ROOT/torrc
         fi        
         
-        sleep 2
         printf "Restarting Tor service... \n"
         systemctl restart tor
         wait_tor_service_active
-        sleep 10
         ONION_URL=$(cat $HSDIR_ROOT/nextcloud/hostname)
-        change_color 2
-        printf "\n\nOnion HiddenService url:  $ONION_URL \n\n"
-        change_color -1
-
+        green_msg "\n\nOnion HiddenService:  $ONION_URL \n\n"
     fi
 
 }
 
+#Wait for the Tor service status to be active. It tries 20 attempts before failing.
 wait_tor_service_active() {
 
     max_attempts=20
@@ -101,154 +79,140 @@ wait_tor_service_active() {
 
 #================PACKAGES================
 
-check_for_package() {
+# Usage: ensure_package <PKG> <APT_UPDATE>
+# Takes the name of a package to install if not already installed,
+# and optionally a 1 if apt update should be run after installation
+# has finished.
+ensure_package() {
     local program
+    local execute_apt_update
     program="${1}"
-    successfully_message="install ok installed"
-
+    execute_apt_update="${2}"
+    
     printf "\\n\\n Checking ${program} in the system...\\n\\n\\n"
+    dpkg-query -W --showformat='${status}\n' ${program} >/dev/null 2>&1 
+    PKG_EXISTS=$?
 
-    command -v "${program}"
+    if [ "x$PKG_EXISTS" == "x1" ]; then
+        printf "==========================\\n"
+        red_msg " ${program} is not installed\\n"
+        printf "==========================\\n\\n"
+        apt --assume-yes install ${program}
 
-    PKG_OK=$(dpkg-query -W --showformat='${status}\n' ${program} | grep "${successfully_message}")
-
-    if [ "${successfully_message}" != "$PKG_OK" ]; then
-        printf "=============================\\n"
-        change_color 1
-        printf " ${program} is not installed\\n"
-        change_color -1
-        printf "==============================\\n\\n"
-        install_pkg ${program}
+        if [ "x$execute_apt_update" == "x1" ]; then
+            apt update
+            date
+        fi
+        
     else
-        printf "=========================\\n"
-        change_color 2
-        printf " ${program} is installed\\n"
-        change_color -1
-        printf "=========================\\n"
-        #purge_pkg ${program}
-    fi
+        printf "======================\\n"
+        green_msg " ${program} is installed\\n"
+        printf "======================\\n"
+    fi  
 }
 
+# Usage: install_pkg <PKG>
+# Takes the name of the package and install it.
 install_pkg() {
     program=$1
-    change_color 3
-    printf "Installing ${program}...\\n"
-    change_color -1
+    yellow_msg "Installing ${program}...\\n"
     apt --assume-yes install ${program}
 }
 
+# Usage: install_pkg <PKG>
+# Takes the name of the package and uninstall it.
 purge_pkg() {
     program=$1
-    change_color 3
-    printf "Uninstalling ${program}...\\n"
-    change_color -1
+    yellow_msg "Uninstalling ${program}...\\n"
     apt-get --assume-yes --purge remove ${program}
 }
 
+#Uninstall a group of packages.
 purge_packages() {
     purge_pkg "tor"
     purge_pkg "net-tools"
-    purge_pkg "snapd"
     purge_snap_pkg "nextcloud"
+    purge_pkg "snapd"
 }
 
-check_packages() {
-    check_for_package "tor"
-    check_for_package "net-tools"
-    check_for_package "snapd"
+#Install a group of packages.
+ensure_packages() {
+    ensure_package "ntp" 1
+    ensure_package "tor"
+    ensure_package "net-tools"    
+    ensure_package "xclip"
+    ensure_package "snapd"
 }
 
 #================PACKAGES================
 
 #================SNAP PACKAGES================
 
-check_snap_pkg() {
+# Usage: ensure_snap_pkg <PKG>
+# Takes the name of a snap package to install if not already installed.
+ensure_snap_pkg() {
     local program
     program="${1}"
 
     printf "\\n\\n Checking ${program} in the system...\\n\\n\\n"
 
-    command -v "${program}"
-
     PKG_OK=$(snap list | grep ${program})
 
-    if [ "" == "$PKG_OK" ]; then
+    if [ "x$PKG_OK" == "x" ]; then
         printf "=============================\\n"
-        change_color 1
-        printf " ${program} is not installed\\n"
-        change_color -1
+        red_msg " ${program} is not installed\\n"
         printf "==============================\\n\\n"
         install_pkg ${program}
     else
         printf "=========================\\n"
-        change_color 2
-        printf " ${program} is installed\\n"
-        change_color -1
+        yellow_msg " ${program} is installed\\n"
         printf "=========================\\n"
     fi
 }
 
+# Usage: install_snap_pkg <PKG>
+# Takes the name of the snap package and install it.
 install_snap_pkg() {
     program=$1
-    change_color 3
-    printf "Installing snap package ${program}...\\n"
-    change_color -1
+    yellow_msg "Installing snap package ${program}...\\n"
     snap install ${program}
 }
 
+# Usage: purge_snap_pkg <PKG>
+# Takes the name of the snap package and uninstall it.
 purge_snap_pkg() {
     program=$1
-    change_color 3
-    printf "Uninstalling snap package ${program}...\\n"
-    change_color -1
+    yellow_msg "Uninstalling snap package ${program}...\\n"
     snap remove ${program}
 }
 
-check_snap_packages() {
+#Install NextCloud snap package.
+check_nextcloud_snap_packages() {
     install_snap_pkg "nextcloud"
 }
 
 #================SNAP PACKAGES================
 
-#================UTIL================
-
-change_color() {
-    color=$1
-    if [ "${color}" == "-1" ]; then
-        tput sgr0
-    else
-        tput setaf "${color}"
-    fi
-}
-
-#================UTIL================
-
 #================NEXTCLOUD================
 
+#Configure the NextCloud port to be used.
 configure_nextcloud() {
-    change_color 3
-    printf "Configuring NextCloud...\\n"
-    change_color -1
-    sudo snap set nextcloud ports.http=${NEXTCLOUD_PORT}
+    yellow_msg "Configuring NextCloud...\\n"
+    snap set nextcloud ports.http=${NEXTCLOUD_PORT}
 }
 
 #================NEXTCLOUD================
 
+# Run the main functionality.
+# Requires sudo in order to run correctly.
 main() {
 
-    apt-get update
-    check_packages
-    check_snap_packages
-    sleep 2
+    ensure_packages
+    check_nextcloud_snap_packages
     configure_nextcloud
-    sleep 2
     configure_hidden_service
-    ensure_tor_browser
     # purge_packages
-    
-    change_color 4
-    printf "\\nExiting...\\n\\n"
-    change_color -1
+        
 }
 
 main

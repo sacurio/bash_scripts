@@ -2,16 +2,21 @@
 
 HSDIR_ROOT=/var/lib/tor
 
+source utils.sh
+
 sudo ./setup-nextcloud-with-permissions.sh
+
+#Retrieve the Hidden Service address configured.
 ONION_URL=$(sudo cat $HSDIR_ROOT/nextcloud/hostname)
-#firefox http://127.0.0.1:81 &
-TBB_EXIST=$(which tor-browser)
-if [ x$TBB_EXIST == "x" ]; then
-    torbrowser-launcher http://$ONION_URL:81 &
+HS_URL=""
+FF_EXIST=$(which firefox)
+if [ x$FF_EXIST == "x" ]; then
+    red_msg "\n\nFirefox is not installed.\n"
 else    
-    printf "\n\n=====================\n"
-    printf "    http://$ONION_URL:81\n\n"
-    printf "=====================\n\n"
-    tor-browser http://$ONION_URL:81 &
-    firefox http://127.0.0.1.81 &
+    HS_URL="http://${ONION_URL}:81"    
+    green_msg "\n\nCopy and paste the next address in your Tor browser:\n"
+    green_msg "$HS_URL\n\n"
+    echo ${HS_URL} | xclip -selection c
+    green_msg "The Onion Hidden Service address was copied to your clipboard.\n\n"
+    firefox http://127.0.0.1:81 &
 fi
