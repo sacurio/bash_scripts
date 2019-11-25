@@ -51,17 +51,23 @@ check_tor_service_status() {
     fi
 }
 
-check_tor_browser(){
-    EXISTS=$(which tor-browser)
-    if [ EXISTS == "" ]; then
-        install_tor_browser
-    fi
+install_tor_browser_launcher() {
+    printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
+    apt update
+    apt --assume-yes install torbrowser-launcher -t buster-backports
 }
 
-install_tor_browser() {
-    printf "deb http://deb.debian.org/debian buster-backports main contrib" > /etc/apt/sources.list.d/buster-backports.list
-    apt update
-    apt --assume-yes install torbrowser-launcher -t buster-backports    
+ensure_tor_browser(){
+    EXISTS=$(which tor-browser)
+    if [ x$EXISTS == "x" ]; then
+        INSTALLER_EXISTS=$(which torbrowser-launcher)
+        if [ x$INSTALLER_EXISTS == "x" ]; then
+            echo "Installing tor browser installer, since it didn't exist"
+            install_tor_browser_launcher
+        fi
+        echo "Installing tor browser, since it didn't exist"
+        run_tor_browser_installer
+    fi
 }
 
 #================TOR================
@@ -266,13 +272,11 @@ main() {
     configure_nextcloud
     sleep 2
     configure_hidden_service
-
+    ensure_tor_browser
     # purge_packages
 
     check_tor_service_status
-    sleep 2
-    check_tor_browser
-
+    
     change_color 4
     printf "\\nExiting...\\n\\n"
     change_color -1
