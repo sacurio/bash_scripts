@@ -65,8 +65,6 @@ ensure_tor_browser(){
             echo "Installing tor browser installer, since it didn't exist"
             install_tor_browser_launcher
         fi
-        echo "Installing tor browser, since it didn't exist"
-        run_tor_browser_installer
     fi
 }
 
