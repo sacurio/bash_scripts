@@ -23,33 +23,6 @@ ONION_URL='-'
 
 #================TOR================
 
-check_tor_service_status() {
-    ## Validating services status
-    TOR_STATUS=$(systemctl is-active tor)
-
-    printf "\nChecking Tor service status...\n"
-
-    if [ "$TOR_STATUS" == "inactive" ]; then
-        change_color 1
-        printf "\nTor service status ${TOR_STATUS}\\n"
-        change_color -1
-
-        change_color 4
-        echo "Starting tor service..."
-        change_color -1
-        systemctl start tor
-        sleep 5
-        check_tor_service_status
-    else
-        if [ ${TOR_SERVICE_CHECKER} -lt ${TOR_SERVICE_CHECKER_MAX} ]; then
-            printf "\nChecking ${TOR_SERVICE_CHECKER} / ${TOR_SERVICE_CHECKER_MAX}\\n"
-            change_color 2
-            printf "\nTor service status ${TOR_STATUS}\\n"
-            change_color -1
-            TOR_SERVICE_CHECKER+= 1
-        fi
-    fi
-}
 
 install_tor_browser_launcher() {
     printf "deb http://deb.debian.org/debian buster-backports main contrib" >/etc/apt/sources.list.d/buster-backports.list
@@ -272,8 +245,6 @@ main() {
     configure_hidden_service
     ensure_tor_browser
     # purge_packages
-
-    check_tor_service_status
     
     change_color 4
     printf "\\nExiting...\\n\\n"
