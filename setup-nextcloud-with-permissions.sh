@@ -67,7 +67,7 @@ wait_for_file_to_exist() {
     current_attempt=1
 
     while [ ! -f $filename ]; do
-        echo "Tor onion service file does not exist yet"
+        echo "Tor onion service file does not exist yet [${current_attempt} / ${max_attempts}]"
         ((current_attempt++))
         if [ $current_attempt -ge $max_attempts ]; then
             printf "Tor Service took too long to create onion file - check any possible error messages"
