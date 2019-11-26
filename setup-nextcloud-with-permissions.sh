@@ -9,6 +9,7 @@ set -e
 TORRC_ROOT=/etc/tor
 HSDIR_ROOT=/var/lib/tor
 NEXTCLOUD_PORT=81
+HS_PORT=80
 SEARCH_TEXT="NextCloud hidden service configuration"
 
 USER="debian-tor"
@@ -41,7 +42,7 @@ configure_hidden_service() {
             # of insertion would be used.
             sed -e "78 a # NextCloud hidden service configuration." \
                 -e "78 a HiddenServiceDir $HSDIR_ROOT/nextcloud/" \
-                -e "78 a HiddenServicePort $NEXTCLOUD_PORT 127.0.0.1:$NEXTCLOUD_PORT\n" \
+                -e "78 a HiddenServicePort $HS_PORT 127.0.0.1:$NEXTCLOUD_PORT\n" \
                 <$TORRC_ROOT/torrc.orig \
                 >$TORRC_ROOT/torrc
         fi        
@@ -173,7 +174,6 @@ purge_packages() {
 ensure_packages() {
     ensure_package "ntp" 1
     ensure_package "tor"
-    ensure_package "net-tools"    
     ensure_package "xclip"
     ensure_package "snapd"
 }
@@ -223,6 +223,8 @@ purge_snap_pkg() {
 #Install NextCloud snap package.
 check_nextcloud_snap_packages() {
     install_snap_pkg "nextcloud"
+    nextcloud.occ config:system:set trusted_domains 1 --value=$ONION_URL
+    green_msg "Trusted domain added to NextCloud instance.\n"
 }
 
 #================SNAP PACKAGES================
