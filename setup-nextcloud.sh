@@ -2,6 +2,8 @@
 
 HSDIR_ROOT=/var/lib/tor
 
+set -e
+
 source utils.sh
 
 sudo ./setup-nextcloud-with-permissions.sh

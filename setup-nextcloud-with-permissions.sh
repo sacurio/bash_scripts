@@ -49,10 +49,32 @@ configure_hidden_service() {
         printf "Restarting Tor service... \n"
         systemctl restart tor
         wait_tor_service_active
+        wait_for_file_to_exist $HSDIR_ROOT/nextcloud/hostname
         ONION_URL=$(cat $HSDIR_ROOT/nextcloud/hostname)
         green_msg "\n\nOnion HiddenService:  $ONION_URL \n\n"
     fi
 
+}
+
+# wait_for_file_to_exist <FILE>
+# waits for up to 20 seconds for the given file argument
+# to exist
+wait_for_file_to_exist() {
+    local filename=$1
+
+    max_attempts=20
+    current_attempt=1
+
+    while [ ! -f $filename ]; do
+        echo "Tor onion service file does not exist yet"
+        ((current_attempt++))
+        if [ $current_attempt -ge $max_attempts ]; then
+            printf "Tor Service took too long to create onion file - check any possible error messages"
+            exit 1
+        else
+            sleep 1
+        fi
+    done
 }
 
 #Wait for the Tor service status to be active. It tries 20 attempts before failing.
@@ -63,6 +85,7 @@ wait_tor_service_active() {
 
     TOR_STATUS=$(systemctl is-active tor)
     while [ "$TOR_STATUS" != "active" ]; do
+        echo "Tor status is $TOR_STATUS - waiting a second"
         ((current_attempt++))
         if [ $current_attempt -ge $max_attempts ]; then
             printf "Tor Service took too long to become active - check any possible error messages"
@@ -90,8 +113,8 @@ ensure_package() {
     execute_apt_update="${2}"
     
     printf "\\n\\n Checking ${program} in the system...\\n\\n\\n"
-    dpkg-query -W --showformat='${status}\n' ${program} >/dev/null 2>&1 
-    PKG_EXISTS=$?
+    PKG_EXISTS=$(dpkg-query -W --showformat='${status}\n' ${program} | grep "ok installed"; echo $?)
+#    PKG_EXISTS=$?
 
     if [ "x$PKG_EXISTS" == "x1" ]; then
         printf "==========================\\n"
@@ -100,8 +123,8 @@ ensure_package() {
         apt --assume-yes install ${program}
 
         if [ "x$execute_apt_update" == "x1" ]; then
-            apt update
             date
+            apt update
         fi
         
     else
