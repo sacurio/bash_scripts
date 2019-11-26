@@ -222,9 +222,26 @@ purge_snap_pkg() {
 
 #Install NextCloud snap package.
 check_nextcloud_snap_packages() {
-    install_snap_pkg "nextcloud"
-    nextcloud.occ config:system:set trusted_domains 1 --value=$ONION_URL
-    green_msg "Trusted domain added to NextCloud instance.\n"
+    install_snap_pkg "nextcloud"    
+    setup_trusted_domain_on_nextcloud   
+}
+
+#Finish the installation of NextCloud and setup the Hidden Service
+#like trusted_domain.
+setup_trusted_domain_on_nextcloud(){
+    red_msg "Please entry the name of the admin user for NextCloud:\n"
+    read admin_user
+    red_msg "Please entry the password of the admin user for NextCloud:\n"
+    read admin_password
+
+    green_msg "\n======================================================\n"
+    green_msg "Username:${admin_user}     Password:${admin_password}   \n"
+    green_msg "\n======================================================\n"
+
+    nextcloud.manual-install $admin_user $admin_password
+    #add Hidden Service address like a trusted domain in NextCloud instance
+    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
+    green_msg "Trusted domain added to NextCloud instance succesfully.\n"
 }
 
 #================SNAP PACKAGES================
