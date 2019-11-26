@@ -239,10 +239,7 @@ setup_trusted_domain_on_nextcloud(){
     green_msg "\n======================================================\n"
 
     /snap/bin/nextcloud.manual-install $admin_user $admin_password
-    sleep 10
-    #add Hidden Service address like a trusted domain in NextCloud instance
-    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
-    green_msg "\nTrusted domain added to NextCloud instance succesfully.\n"
+    sleep 5    
 }
 
 #================SNAP PACKAGES================
@@ -265,6 +262,9 @@ main() {
     check_nextcloud_snap_packages
     configure_nextcloud
     configure_hidden_service
+    #add Hidden Service address like a trusted domain in NextCloud instance
+    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
+    green_msg "\nTrusted domain added to NextCloud instance succesfully.\n"
     # purge_packages
         
 }
