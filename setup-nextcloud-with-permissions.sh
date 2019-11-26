@@ -238,7 +238,7 @@ setup_trusted_domain_on_nextcloud(){
     green_msg "Username:${admin_user}     Password:${admin_password}   \n"
     green_msg "\n======================================================\n"
 
-    nextcloud.manual-install $admin_user $admin_password
+    /snap/bin/nextcloud.manual-install $admin_user $admin_password
     #add Hidden Service address like a trusted domain in NextCloud instance
     /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
     green_msg "Trusted domain added to NextCloud instance succesfully.\n"
