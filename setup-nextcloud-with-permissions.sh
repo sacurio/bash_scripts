@@ -121,17 +121,28 @@ ensure_package() {
         red_msg " ${program} is not installed\\n"
         printf "==========================\\n\\n"
         apt --assume-yes install ${program}
-
-        if [ "x$execute_apt_update" == "x1" ]; then
-            date
-            apt update
-        fi
-        
     else
         printf "======================\\n"
         green_msg " ${program} is installed\\n"
         printf "======================\\n"
     fi  
+
+    if [ "x$execute_apt_update" == "x1" ]; then
+        # Since apt repositories are time stamped
+        # we need to enforce the time is set correctly before doing
+        # an update - this can easily fail in virtual machines, otherwise
+        force_update_of_time
+        apt update
+    fi
+}
+
+# Stops the ntp daemon momentarily to run a forced
+# ntpd update, then restarts the daemon
+force_update_of_time(){
+    systemctl stop ntp
+    ntpd -gq
+    systemctl start ntp
+    date
 }
 
 # Usage: install_pkg <PKG>
