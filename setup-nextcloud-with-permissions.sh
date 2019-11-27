@@ -208,7 +208,7 @@ ensure_snap_pkg() {
 # Takes the name of the snap package and install it.
 install_snap_pkg() {
     program=$1
-    yellow_msg "Installing snap package ${program}...\\n"
+    yellow_msg "\nInstalling snap package ${program}...\\n"
     snap install ${program}
 }
 
@@ -229,14 +229,23 @@ check_nextcloud_snap_packages() {
 #Finish the installation of NextCloud and configuring the 
 #admin account credentials.
 setup_admin_account_on_nextcloud(){
-    red_msg "Please entry the name of the admin user for NextCloud:\n"
-    read admin_user
-    red_msg "Please entry the password of the admin user for NextCloud:\n"
-    read admin_password
 
+    yellow_msg "\n\nPlease input the next values in order to configure the NextCloud admin account:\n"
+    read -p "Username: " admin_user
+    while true; do
+        read -s -p "Password: " admin_password
+        echo
+        read -s -p "Password (again): " admin_password2
+        echo
+        [ "$admin_password" = "$admin_password2" ] && break
+        red_msg "The passwords don't mistmatch, please try again.\n"
+    done
+    
     green_msg "\n======================================================\n"
-    green_msg "Username:${admin_user}     Password:${admin_password}   \n"
+    green_msg "    Username:${admin_user}     Password:${admin_password}   "
     green_msg "\n======================================================\n"
+
+    printf "Aplying credentials values to NextCloud admin account...\n"
 
     /snap/bin/nextcloud.manual-install $admin_user $admin_password
     sleep 5    

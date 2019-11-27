@@ -4,12 +4,23 @@ source utils.sh
 
 function test {
     
-    url="domain.your.ec"
+    yellow_msg "Please input the next values in order to configure the NextCloud admin account:\n"
+    read -p "Username: " admin_user
+    while true; do
+        read -s -p "Password: " admin_password
+        echo
+        read -s -p "Password (again): " admin_password2
+        echo
+        [ "$admin_password" = "$admin_password2" ] && break
+        echo "Please try again"
+    done
+    
+    green_msg "\n======================================================\n"
+    green_msg "Username:${admin_user}     Password:${admin_password}   "
+    green_msg "\n======================================================\n"
 
-    sleep 10
-    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=${url}
-    # sudo -i nextcloud.occ config:system:get trusted_domains
-    green_msg "Trusted domain added to NextCloud instance succesfully.\n"
+    printf "Aplying credentials values to NextCloud admin account...\n"
+
 }
 
 test
