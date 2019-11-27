@@ -27,10 +27,10 @@ ONION_URL='-'
 # torrc during operation.
 configure_hidden_service() {
 
-    printf "Configuring hidden service...\n"
+    printf "\tConfiguring hidden service...\n"
     
     if [ "$TOR_STATUS" != "inactive" ]; then
-        echo "Backing up original torrc configuration..."
+        echo "\tBacking up original torrc configuration..."
 
         LINES_FOUND=$(grep "$SEARCH_TEXT" $TORRC_ROOT/torrc | wc -l)
 
@@ -47,12 +47,12 @@ configure_hidden_service() {
                 >$TORRC_ROOT/torrc
         fi        
         
-        printf "Restarting Tor service... \n"
+        printf "\tRestarting Tor service... \n"
         systemctl restart tor
         wait_tor_service_active
         wait_for_file_to_exist $HSDIR_ROOT/nextcloud/hostname
         ONION_URL=$(cat $HSDIR_ROOT/nextcloud/hostname)
-        green_msg "\n\nOnion HiddenService:  $ONION_URL \n\n"
+        printf "\n\tOnion HiddenService:  $ONION_URL \n\n"
     fi
 
 }
@@ -67,7 +67,7 @@ wait_for_file_to_exist() {
     current_attempt=1
 
     while [ ! -f $filename ]; do
-        echo "Tor onion service file does not exist yet [${current_attempt} / ${max_attempts}]"
+        echo "\tTor onion service file does not exist yet [${current_attempt} / ${max_attempts}]"
         ((current_attempt++))
         if [ $current_attempt -ge $max_attempts ]; then
             printf "Tor Service took too long to create onion file - check any possible error messages"
@@ -245,7 +245,7 @@ setup_admin_account_on_nextcloud(){
     green_msg "    Username:${admin_user}     Password:${admin_password}   "
     green_msg "\n======================================================\n"
 
-    printf "Aplying credentials values to NextCloud admin account...\n"
+    printf "Applying credentials values to NextCloud admin account...\n"
 
     /snap/bin/nextcloud.manual-install $admin_user $admin_password
     sleep 5    
@@ -255,7 +255,7 @@ setup_admin_account_on_nextcloud(){
 add_trusted_domain_on_nextcloud(){
     #add Hidden Service address like a trusted domain in NextCloud instance
     /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
-    green_msg "\nTrusted domain added to NextCloud instance succesfully.\n"
+    printf "\nThe Hidden Service address has been added like trusted domain succesfully.\n"
 }
 
 #================SNAP PACKAGES================
