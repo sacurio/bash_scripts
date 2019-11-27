@@ -223,12 +223,12 @@ purge_snap_pkg() {
 #Install NextCloud snap package.
 check_nextcloud_snap_packages() {
     install_snap_pkg "nextcloud"    
-    setup_trusted_domain_on_nextcloud   
+    setup_admin_account_on_nextcloud   
 }
 
-#Finish the installation of NextCloud and setup the Hidden Service
-#like trusted_domain.
-setup_trusted_domain_on_nextcloud(){
+#Finish the installation of NextCloud and configuring the 
+#admin account credentials.
+setup_admin_account_on_nextcloud(){
     red_msg "Please entry the name of the admin user for NextCloud:\n"
     read admin_user
     red_msg "Please entry the password of the admin user for NextCloud:\n"
@@ -240,6 +240,13 @@ setup_trusted_domain_on_nextcloud(){
 
     /snap/bin/nextcloud.manual-install $admin_user $admin_password
     sleep 5    
+}
+
+#Setup the Hidden Service like trusted_domain.
+add_trusted_domain_on_nextcloud(){
+    #add Hidden Service address like a trusted domain in NextCloud instance
+    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
+    green_msg "\nTrusted domain added to NextCloud instance succesfully.\n"
 }
 
 #================SNAP PACKAGES================
@@ -262,9 +269,7 @@ main() {
     check_nextcloud_snap_packages
     configure_nextcloud
     configure_hidden_service
-    #add Hidden Service address like a trusted domain in NextCloud instance
-    /snap/bin/nextcloud.occ config:system:set trusted_domains 2 --value=$ONION_URL
-    green_msg "\nTrusted domain added to NextCloud instance succesfully.\n"
+    add_trusted_domain_on_nextcloud
     # purge_packages
         
 }
